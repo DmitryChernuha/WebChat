@@ -1,22 +1,23 @@
-from flask import Flask
-import datetime
+from flask import Flask, request, render_template
+from datetime import datetime
+import json
 
 app = Flask(__name__)
 
-# Структура одного сообщения
-# Список сообщений - список словарей
-messages_list = [
- {
-    'text': 'Всем приветы в этом чате',
-    'sender': 'Васисуалий',
-     'date': '31-01-22 21:00',
- },
- {
-    'text': 'Какие дела',
-    'sender': 'Мишаня',
-    'date': '31-01-22 22:00',
- }
-]
+
+db_file = "./data/db.json"  # Путь к файлу
+json_db = open(db_file, 'rb')  # Открываем файл
+data = json.load(json_db)  # Загружаем данные из файла
+messages_list = data["messages_list"]  # Берем сообщение из структуры и кладем в переменную
+
+
+def save_message():
+    '''Функция сохранения сообщений в файл'''
+    data = {
+        "messages_list": messages_list,
+    }
+    json_db = open(db_file, "w")
+    json.dump(data, json_db)  # Записываем данные в файл
 
 
 def print_message(message):
@@ -30,7 +31,7 @@ def add_message(name, txt):
     message = {
         'text': txt,
         'sender': name,
-        'date': datetime.datetime.now()
+        'date': datetime.now().strftime('%H:%M')
     }
     messages_list.append(message)
 
@@ -39,15 +40,16 @@ def add_message(name, txt):
 # for m in messages_list:
 #     print_message(m)
 
-# Главная страница
+
 @app.route('/')
 def index_page():
+    '''Главная страница'''
     return 'Hello, welcome to Chat'
 
 
-# Раздел со списком сообщений
 @app.route('/get_messages')
 def get_messages():
+    '''Раздел со списком сообщений'''
     return {'messages': messages_list}
 
 
@@ -55,7 +57,18 @@ def get_messages():
 @app.route('/send_message')
 def send_message():
     # Как получить данные из браузера?
+    name = request.args['name']
+    text = request.args['text']
     add_message(name, text)
+    save_message()  # Сохраняем все сообщения в файл
+    return 'Ok'
+
+# Раздел с визуальным интерефейсом
+
+
+@app.route('/form')
+def form():
+    return render_template('form.html')
 
 
 app.run()
